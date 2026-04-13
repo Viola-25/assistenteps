@@ -335,7 +335,7 @@
         // Função de chamada da API
         async function callGeminiAPI(prompt) {
             const apiKey = "AIzaSyDusnZ_1tNyv7FhGeWT_WUTu3gNLRAfLoc";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             
             const payload = {
                 contents: [{ role: "user", parts: [{ text: prompt }] }],
