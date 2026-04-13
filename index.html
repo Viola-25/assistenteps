@@ -83,15 +83,46 @@
         </div>
 
 
-        <!-- GERENCIADOR DE API KEY -->
+        <!-- GERENCIADOR DE API KEYS -->
         <div id="api-key-manager" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <h3 class="text-sm font-semibold text-amber-900 mb-2">🔑 Chave de API Gemini</h3>
-            <div class="flex gap-2">
-                <input type="password" id="api-key-input" class="flex-1 p-2 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="Cole sua chave de API do Google Gemini aqui...">
-                <button id="save-api-key-btn" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition">Salvar</button>
-                <button id="clear-api-key-btn" class="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition" title="Apagar chave salva">✕</button>
+            <h3 class="text-sm font-semibold text-amber-900 mb-3">🔑 Configurar APIs</h3>
+            
+            <!-- Seletor de Modelo -->
+            <div class="mb-4 pb-4 border-b border-amber-200">
+                <label class="text-xs font-semibold text-amber-900 block mb-2">Qual modelo deseja usar?</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" id="model-gemini" name="model-choice" value="gemini" checked>
+                        <span class="text-sm text-amber-800">🟦 Google Gemini</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" id="model-gpt" name="model-choice" value="gpt">
+                        <span class="text-sm text-amber-800">💚 OpenAI GPT-4</span>
+                    </label>
+                </div>
             </div>
-            <p id="api-key-status" class="text-xs text-amber-700 mt-2"></p>
+
+            <!-- Google Gemini API -->
+            <div id="gemini-section" class="mb-4 pb-4 border-b border-amber-200">
+                <label class="text-xs font-semibold text-amber-900 block mb-2">🟦 Google Gemini API Key</label>
+                <div class="flex gap-2">
+                    <input type="password" id="api-key-gemini" class="flex-1 p-2 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="Chave Gemini...">
+                    <button id="save-api-key-gemini-btn" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition">Salvar</button>
+                    <button id="clear-api-key-gemini-btn" class="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition" title="Apagar chave salva">✕</button>
+                </div>
+                <p id="api-key-gemini-status" class="text-xs text-amber-700 mt-2"></p>
+            </div>
+
+            <!-- OpenAI API -->
+            <div id="openai-section" class="hidden">
+                <label class="text-xs font-semibold text-amber-900 block mb-2">💚 OpenAI API Key</label>
+                <div class="flex gap-2">
+                    <input type="password" id="api-key-openai" class="flex-1 p-2 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="Chave OpenAI (sk-...)">
+                    <button id="save-api-key-openai-btn" class="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition">Salvar</button>
+                    <button id="clear-api-key-openai-btn" class="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition" title="Apagar chave salva">✕</button>
+                </div>
+                <p id="api-key-openai-status" class="text-xs text-green-700 mt-2"></p>
+            </div>
         </div>
 
         <!-- BOTÃO DE AÇÃO PÓS-GERAÇÃO -->
@@ -129,7 +160,9 @@
         let triageData = {};
         let historyCache = [];
         const LOCAL_STORAGE_KEY = 'consultations_history';
-        const API_KEY_STORAGE_KEY = 'gemini_api_key';
+        const API_KEY_GEMINI_STORAGE = 'gemini_api_key';
+        const API_KEY_OPENAI_STORAGE = 'openai_api_key';
+        const MODEL_CHOICE_STORAGE = 'model_choice';
 
         // Seletores DOM
         const triageForm = document.getElementById('triage-form');
@@ -149,10 +182,24 @@
         const searchProtocolsButton = document.getElementById('search-protocols-button');
         const searchTermSpan = document.getElementById('search-term');
         const historyList = document.getElementById('history-list');
-        const apiKeyInput = document.getElementById('api-key-input');
-        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
-        const clearApiKeyBtn = document.getElementById('clear-api-key-btn');
-        const apiKeyStatus = document.getElementById('api-key-status');
+        
+        // Seletores Model Choice
+        const modelGeminiRadio = document.getElementById('model-gemini');
+        const modelGptRadio = document.getElementById('model-gpt');
+        const geminiSection = document.getElementById('gemini-section');
+        const openaiSection = document.getElementById('openai-section');
+        
+        // Seletores Gemini
+        const apiKeyGemini = document.getElementById('api-key-gemini');
+        const saveApiKeyGeminiBtn = document.getElementById('save-api-key-gemini-btn');
+        const clearApiKeyGeminiBtn = document.getElementById('clear-api-key-gemini-btn');
+        const apiKeyGeminiStatus = document.getElementById('api-key-gemini-status');
+        
+        // Seletores OpenAI
+        const apiKeyOpenai = document.getElementById('api-key-openai');
+        const saveApiKeyOpenaiBtn = document.getElementById('save-api-key-openai-btn');
+        const clearApiKeyOpenaiBtn = document.getElementById('clear-api-key-openai-btn');
+        const apiKeyOpenaiStatus = document.getElementById('api-key-openai-status');
 
         // Ícones SVG
         const normalIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-question-circle-fill flex-shrink-0 text-blue-500" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z"/></svg>`;
@@ -208,46 +255,105 @@
             triageForm.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // --- FUNÇÕES DE GERENCIAMENTO DE API KEY ---
-        function loadApiKey() {
-            const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-            if (savedKey) {
-                apiKeyInput.value = savedKey;
-                updateApiKeyStatus(true);
+        // --- FUNÇÕES DE GERENCIAMENTO DE API KEYS E MODELO ---
+        function loadApiKeys() {
+            // Carregar modelo selecionado
+            const savedModel = localStorage.getItem(MODEL_CHOICE_STORAGE) || 'gemini';
+            if (savedModel === 'gpt') {
+                modelGptRadio.checked = true;
+                showOpenAISection();
             } else {
-                updateApiKeyStatus(false);
+                modelGeminiRadio.checked = true;
+                showGeminiSection();
+            }
+
+            // Carregar chaves
+            const savedGeminiKey = localStorage.getItem(API_KEY_GEMINI_STORAGE);
+            const savedOpenaiKey = localStorage.getItem(API_KEY_OPENAI_STORAGE);
+            
+            if (savedGeminiKey) {
+                apiKeyGemini.value = savedGeminiKey;
+                updateApiKeyStatus(apiKeyGemini, apiKeyGeminiStatus, true);
+            } else {
+                updateApiKeyStatus(apiKeyGemini, apiKeyGeminiStatus, false);
+            }
+
+            if (savedOpenaiKey) {
+                apiKeyOpenai.value = savedOpenaiKey;
+                updateApiKeyStatus(apiKeyOpenai, apiKeyOpenaiStatus, true);
+            } else {
+                updateApiKeyStatus(apiKeyOpenai, apiKeyOpenaiStatus, false);
             }
         }
 
-        function updateApiKeyStatus(hasSavedKey) {
+        function showGeminiSection() {
+            geminiSection.classList.remove('hidden');
+            openaiSection.classList.add('hidden');
+            localStorage.setItem(MODEL_CHOICE_STORAGE, 'gemini');
+        }
+
+        function showOpenAISection() {
+            geminiSection.classList.add('hidden');
+            openaiSection.classList.remove('hidden');
+            localStorage.setItem(MODEL_CHOICE_STORAGE, 'gpt');
+        }
+
+        function updateApiKeyStatus(inputElement, statusElement, hasSavedKey) {
             if (hasSavedKey) {
-                apiKeyStatus.textContent = '✓ Chave salva no cache do navegador';
-                apiKeyStatus.classList.add('text-green-700');
-                apiKeyStatus.classList.remove('text-red-700');
+                const maskedKey = inputElement.value.substring(0, 8) + '...' + inputElement.value.substring(inputElement.value.length - 4);
+                statusElement.textContent = `✓ Chave salva: ${maskedKey}`;
+                statusElement.classList.add('text-green-700');
+                statusElement.classList.remove('text-red-700');
             } else {
-                apiKeyStatus.textContent = '⚠ Nenhuma chave salva. Por favor, insira sua chave de API.';
-                apiKeyStatus.classList.add('text-red-700');
-                apiKeyStatus.classList.remove('text-green-700');
+                statusElement.textContent = '⚠ Nenhuma chave salva';
+                statusElement.classList.add('text-red-700');
+                statusElement.classList.remove('text-green-700');
             }
         }
 
-        saveApiKeyBtn.addEventListener('click', () => {
-            const key = apiKeyInput.value.trim();
+        // Listeners Model Choice
+        modelGeminiRadio.addEventListener('change', showGeminiSection);
+        modelGptRadio.addEventListener('change', showOpenAISection);
+
+        // Listeners Gemini
+        saveApiKeyGeminiBtn.addEventListener('click', () => {
+            const key = apiKeyGemini.value.trim();
             if (!key) {
                 alert('Por favor, insira uma chave de API válida.');
                 return;
             }
-            localStorage.setItem(API_KEY_STORAGE_KEY, key);
-            updateApiKeyStatus(true);
-            alert('✓ Chave de API salva com sucesso no cache!');
+            localStorage.setItem(API_KEY_GEMINI_STORAGE, key);
+            updateApiKeyStatus(apiKeyGemini, apiKeyGeminiStatus, true);
+            alert('✓ Chave Gemini salva com sucesso!');
         });
 
-        clearApiKeyBtn.addEventListener('click', () => {
-            if (confirm('Tem certeza que deseja apagar a chave de API salva?')) {
-                localStorage.removeItem(API_KEY_STORAGE_KEY);
-                apiKeyInput.value = '';
-                updateApiKeyStatus(false);
-                alert('✓ Chave de API removida.');
+        clearApiKeyGeminiBtn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar a chave Gemini?')) {
+                localStorage.removeItem(API_KEY_GEMINI_STORAGE);
+                apiKeyGemini.value = '';
+                updateApiKeyStatus(apiKeyGemini, apiKeyGeminiStatus, false);
+                alert('✓ Chave Gemini removida.');
+            }
+        });
+
+        // Listeners OpenAI
+        saveApiKeyOpenaiBtn.addEventListener('click', () => {
+            const key = apiKeyOpenai.value.trim();
+            if (!key) {
+                alert('Por favor, insira uma chave de API válida.');
+                return;
+            }
+            localStorage.setItem(API_KEY_OPENAI_STORAGE, key);
+            updateApiKeyStatus(apiKeyOpenai, apiKeyOpenaiStatus, true);
+            alert('✓ Chave OpenAI salva com sucesso!');
+        });
+
+        clearApiKeyOpenaiBtn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar a chave OpenAI?')) {
+                localStorage.removeItem(API_KEY_OPENAI_STORAGE);
+                apiKeyOpenai.value = '';
+                updateApiKeyStatus(apiKeyOpenai, apiKeyOpenaiStatus, false);
+                alert('✓ Chave OpenAI removida.');
             }
         });
 
@@ -281,10 +387,10 @@
             const searchTermPrompt = `A partir da seguinte queixa principal de um paciente, extraia apenas o termo clínico principal para uma pesquisa de protocolos. Por exemplo, para "dor no peito há 2 horas", o termo é "dor torácica". Para "cabeça doendo muito forte", o termo é "cefaleia". Retorne APENAS o termo clínico, sem nenhuma outra palavra. Queixa: "${triageData.queixa}"`;
 
             try {
-                console.log("[DEBUG] [ETAPA 1] Disparando chamadas para o Gemini...");
+                console.log("[DEBUG] [ETAPA 1] Disparando chamadas para a IA...");
                 const [checklistResultText, clinicalSearchTerm] = await Promise.all([
-                    callGeminiAPI(checklistPrompt),
-                    callGeminiAPI(searchTermPrompt)
+                    callAI(checklistPrompt),
+                    callAI(searchTermPrompt)
                 ]);
                 console.log("[DEBUG] [ETAPA 1] Respostas do Gemini recebidas.");
 
@@ -354,8 +460,8 @@
             const prompt = `Você é um assistente médico sênior. Analise os dados completos do paciente para sugerir Hipóteses Diagnósticas e uma Conduta detalhada e categorizada. DADOS DA TRIAGEM: Queixa: ${triageData.queixa}; Idade/Gênero: ${triageData.idadeGenero}; Sinais Vitais: ${triageData.sinais}; Comorbidades: ${triageData.comorbidades}. ANAMNESE E EXAME FÍSICO: ${anamneseCompleta}. INSTRUÇÕES DE SAÍDA: Retorne a resposta ESTRITAMENTE no seguinte formato:\n\n#HD:\n- **[HIPÓTESE EM CAIXA ALTA?]:** [Explicação concisa].\n\n#CD (Exames Laboratoriais):\n- [Exame 1]\n\n#CD (Exames de Imagem):\n- [Exame 1]\n\n#CD (Medicações Iniciais):\n- [Medicação 1]\n\n#CD (Pareceres e Encaminhamentos):\n- [Parecer 1]`;
 
             try {
-                console.log("[DEBUG] [ETAPA 2] Disparando chamada para o Gemini...");
-                const resultText = await callGeminiAPI(prompt);
+                console.log("[DEBUG] [ETAPA 2] Disparando chamada para a IA...");
+                const resultText = await callAI(prompt);
                 console.log("[DEBUG] [ETAPA 2] Resposta recebida.");
                 
                 // Converter negrito e quebras de linha do Markdown para HTML
@@ -393,11 +499,11 @@
 
         // Função de chamada da API com retry automático
         async function callGeminiAPI(prompt, retries = 3, delay = 2000) {
-            console.log("[DEBUG] [API] Preparando requisição...");
-            const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+            console.log("[DEBUG] [API] Preparando requisição Gemini...");
+            const apiKey = localStorage.getItem(API_KEY_GEMINI_STORAGE);
             
             if (!apiKey) {
-                throw new Error('Chave de API não configurada. Por favor, insira sua chave de API do Google Gemini no campo acima.');
+                throw new Error('Chave de API Gemini não configurada. Por favor, insira sua chave de API do Google Gemini no campo acima.');
             }
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
@@ -409,13 +515,13 @@
 
             for (let attempt = 1; attempt <= retries; attempt++) {
                 try {
-                    console.log(`[DEBUG] [API] Tentativa ${attempt}/${retries}...`);
+                    console.log(`[DEBUG] [Gemini] Tentativa ${attempt}/${retries}...`);
                     const response = await fetch(apiUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
-                    console.log(`[DEBUG] [API] Fetch retornado. Status: ${response.status}`);
+                    console.log(`[DEBUG] [Gemini] Fetch retornado. Status: ${response.status}`);
 
                     if (response.ok) {
                         const result = await response.json();
@@ -425,8 +531,15 @@
 
                     // Se é erro 503 (indisponível) ou 429 (muitas requisições), tenta novamente
                     if ((response.status === 503 || response.status === 429) && attempt < retries) {
+                        const errorBody = await response.text();
+                        
+                        // Se é cota excedida (RESOURCE_EXHAUSTED), não adianta retry
+                        if (errorBody.includes('RESOURCE_EXHAUSTED')) {
+                            throw new Error(`Cota diária excedida. ${errorBody}`);
+                        }
+                        
                         const waitTime = delay * attempt; // backoff exponencial
-                        console.warn(`[DEBUG] [API] Serviço indisponível (${response.status}). Tentando novamente em ${waitTime}ms...`);
+                        console.warn(`[DEBUG] [Gemini] Serviço indisponível (${response.status}). Tentando novamente em ${waitTime}ms...`);
                         await new Promise(resolve => setTimeout(resolve, waitTime));
                         continue;
                     }
@@ -436,16 +549,87 @@
                     if (response.status === 404) {
                         await debugAvailableModels(apiKey);
                     }
-                    throw new Error(`Erro na API: Status ${response.status}. ${errorBody}`);
+                    throw new Error(`Erro na API Gemini: Status ${response.status}. ${errorBody}`);
                 } catch (error) {
                     if (attempt === retries) {
                         throw error;
                     }
-                    console.error(`[DEBUG] [API] Erro na tentativa ${attempt}:`, error.message);
+                    console.error(`[DEBUG] [Gemini] Erro na tentativa ${attempt}:`, error.message);
                     const waitTime = delay * attempt;
-                    console.log(`[DEBUG] [API] Aguardando ${waitTime}ms antes de tentar novamente...`);
+                    console.log(`[DEBUG] [Gemini] Aguardando ${waitTime}ms antes de tentar novamente...`);
                     await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
+            }
+        }
+
+        // Função de chamada da OpenAI API
+        async function callOpenAIAPI(prompt, retries = 3, delay = 2000) {
+            console.log("[DEBUG] [API] Preparando requisição OpenAI...");
+            const apiKey = localStorage.getItem(API_KEY_OPENAI_STORAGE);
+            
+            if (!apiKey) {
+                throw new Error('Chave de API OpenAI não configurada. Por favor, insira sua chave de API da OpenAI no campo acima.');
+            }
+            
+            const apiUrl = 'https://api.openai.com/v1/chat/completions';
+            
+            const payload = {
+                model: 'gpt-4o-mini',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.4,
+                top_p: 0.95
+            };
+
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    console.log(`[DEBUG] [OpenAI] Tentativa ${attempt}/${retries}...`);
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    console.log(`[DEBUG] [OpenAI] Fetch retornado. Status: ${response.status}`);
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (!result.choices || result.choices.length === 0) return "";
+                        return result.choices[0].message.content;
+                    }
+
+                    // Se é erro 529 (overloaded) ou 429 (rate limit), tenta novamente
+                    if ((response.status === 529 || response.status === 429) && attempt < retries) {
+                        const waitTime = delay * attempt; // backoff exponencial
+                        console.warn(`[DEBUG] [OpenAI] Serviço indisponível (${response.status}). Tentando novamente em ${waitTime}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        continue;
+                    }
+
+                    // Outro erro - lança exceção
+                    const errorBody = await response.text();
+                    throw new Error(`Erro na API OpenAI: Status ${response.status}. ${errorBody}`);
+                } catch (error) {
+                    if (attempt === retries) {
+                        throw error;
+                    }
+                    console.error(`[DEBUG] [OpenAI] Erro na tentativa ${attempt}:`, error.message);
+                    const waitTime = delay * attempt;
+                    console.log(`[DEBUG] [OpenAI] Aguardando ${waitTime}ms antes de tentar novamente...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                }
+            }
+        }
+
+        // Função wrapper que chama a API correta baseado na seleção do usuário
+        async function callAI(prompt) {
+            const modelChoice = localStorage.getItem(MODEL_CHOICE_STORAGE) || 'gemini';
+            
+            if (modelChoice === 'gpt') {
+                return await callOpenAIAPI(prompt);
+            } else {
+                return await callGeminiAPI(prompt);
             }
         }
 
@@ -462,14 +646,33 @@
 
         function handleError(error, outputElement, containerElement) {
             console.error("Erro:", error);
-            outputElement.innerHTML = `<p class="text-red-500 font-semibold">Ocorreu um Erro</p><p class="text-slate-600 mt-2">${error.message}</p>`;
+            
+            let errorHTML = `<p class="text-red-500 font-semibold">⚠️ Ocorreu um Erro</p><p class="text-slate-600 mt-2">${error.message}</p>`;
+            
+            // Detecção específica de cota excedida
+            if (error.message.includes('RESOURCE_EXHAUSTED') || error.message.includes('quota')) {
+                errorHTML = `
+                    <p class="text-red-600 font-semibold text-lg">📊 Cota Diária Excedida</p>
+                    <p class="text-slate-700 mt-3 mb-3">A cota gratuita de 20 requisições/dia foi atingida.</p>
+                    <div class="bg-amber-50 border border-amber-300 p-3 rounded-lg mt-2 text-sm">
+                        <p class="font-semibold text-amber-900 mb-2">💡 Opções:</p>
+                        <ul class="list-disc list-inside text-amber-800 space-y-1">
+                            <li>Esperar até amanhã (a cota reseta diariamente)</li>
+                            <li><a href="https://ai.google.dev/pricing" target="_blank" class="underline font-semibold hover:text-amber-900">Atualizar para um plano pago</a></li>
+                            <li>Usar outro modelo/API disponível</li>
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            outputElement.innerHTML = errorHTML;
             containerElement.classList.remove('hidden');
         }
 
-        // Carrega o histórico e a API key ao iniciar a página
+        // Carrega o histórico e as chaves de API ao iniciar a página
         window.onload = () => {
             loadHistory();
-            loadApiKey();
+            loadApiKeys();
         };
     </script>
 </body>
