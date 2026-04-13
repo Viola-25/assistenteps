@@ -82,19 +82,6 @@
             <div id="hd-cd-output"></div>
         </div>
 
-
-        <!-- GERENCIADOR DE API KEY GROQ -->
-        <div id="api-key-manager" class="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <h3 class="text-sm font-semibold text-indigo-900 mb-3">🚀 Configurar API Groq</h3>
-            <div class="flex gap-2">
-                <input type="password" id="api-key-groq" class="flex-1 p-2 text-sm border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Cole sua chave de API do Groq aqui...">
-                <button id="save-api-key-groq-btn" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">Salvar</button>
-                <button id="clear-api-key-groq-btn" class="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition" title="Apagar chave salva">✕</button>
-            </div>
-            <p id="api-key-groq-status" class="text-xs text-indigo-700 mt-2"></p>
-            <p class="text-xs text-indigo-600 mt-2">📚 Não tem chave? Crie em: <a href="https://console.groq.com" target="_blank" class="underline font-semibold hover:text-indigo-800">console.groq.com</a></p>
-        </div>
-
         <!-- BOTÃO DE AÇÃO PÓS-GERAÇÃO -->
         <div id="actions-container" class="mt-6 hidden">
             <button id="search-protocols-button" class="w-full flex items-center justify-center bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-300 transition-all">
@@ -124,6 +111,18 @@
     <footer class="text-center py-4 mt-4">
         <p class="text-sm text-slate-500">Feito com muito amor por Enzo Viola - TXXVIII</p>
     </footer>
+
+    <!-- GERENCIADOR DE API KEY GROQ -->
+    <div id="api-key-manager" class="mt-8 max-w-3xl mx-auto bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+        <h3 class="text-sm font-semibold text-indigo-900 mb-3">🚀 Configurar API Groq</h3>
+        <div class="flex gap-2">
+            <input type="password" id="api-key-groq" class="flex-1 p-2 text-sm border border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Cole sua chave de API do Groq aqui...">
+            <button id="save-api-key-groq-btn" class="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition">Salvar</button>
+            <button id="clear-api-key-groq-btn" class="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition" title="Apagar chave salva">✕</button>
+        </div>
+        <p id="api-key-groq-status" class="text-xs text-indigo-700 mt-2"></p>
+        <p class="text-xs text-indigo-600 mt-2">📚 Não tem chave? Crie em: <a href="https://console.groq.com" target="_blank" class="underline font-semibold hover:text-indigo-800">console.groq.com</a></p>
+    </div>
 
     <script>
         // --- LÓGICA DA APLICAÇÃO ---
@@ -355,7 +354,7 @@
             setLoadingState(true, 2);
             hdCdContainer.classList.add('hidden');
 
-            const prompt = `Você é um assistente médico sênior. Analise os dados completos do paciente para sugerir Hipóteses Diagnósticas e uma Conduta detalhada e categorizada. DADOS DA TRIAGEM: Queixa: ${triageData.queixa}; Idade/Gênero: ${triageData.idadeGenero}; Sinais Vitais: ${triageData.sinais}; Comorbidades: ${triageData.comorbidades}. ANAMNESE E EXAME FÍSICO: ${anamneseCompleta}. INSTRUÇÕES DE SAÍDA: Retorne a resposta ESTRITAMENTE no seguinte formato:\n\n#HD:\n- **[HIPÓTESE EM CAIXA ALTA?]:** [Explicação concisa].\n\n#CD (Exames Laboratoriais):\n- [Exame 1]\n\n#CD (Exames de Imagem):\n- [Exame 1]\n\n#CD (Medicações Iniciais):\n- [Medicação 1]\n\n#CD (Pareceres e Encaminhamentos):\n- [Parecer 1]`;
+            const prompt = `Você é um assistente médico sênior. Analise os dados completos do paciente e foque na PRINCIPAL HIPÓTESE DIAGNÓSTICA baseada na queixa principal e achados clínicos. DADOS DA TRIAGEM: Queixa: ${triageData.queixa}; Idade/Gênero: ${triageData.idadeGenero}; Sinais Vitais: ${triageData.sinais}; Comorbidades: ${triageData.comorbidades}. ANAMNESE E EXAME FÍSICO: ${anamneseCompleta}. INSTRUÇÕES DE SAÍDA: Retorne a resposta ESTRITAMENTE no seguinte formato, focando na investigação e manejo da PRINCIPAL HD:\n\n#HD PRINCIPAL:\n- **[DIAGNÓSTICO PRINCIPAL]:** [Explicação concisa baseada nos achados clínicos]\n\n#DIAGNÓSTICOS DIFERENCIAIS:\n- **[DD1]:** [Breve explicação] - **Como excluir:** [Exame ou achado que descarta]\n- **[DD2]:** [Breve explicação] - **Como excluir:** [Exame ou achado que descarta]\n- **[DD3]:** [Breve explicação] - **Como excluir:** [Exame ou achado que descarta]\n\n#INVESTIGAÇÃO DIRECIONADA:\n- **Exames Laboratoriais:** [Exames específicos para confirmar/excluir a HD principal e DDs]\n- **Exames de Imagem:** [Exames de imagem indicados para a HD principal]\n- **Outros:** [Exames complementares se necessários]\n\n#CONDUTA IMEDIATA:\n- **Medicações:** [Tratamento inicial específico para a HD principal]\n- **Medidas de Suporte:** [Cuidados imediatos e monitoramento]\n- **Encaminhamentos:** [Especialidades ou serviços necessários]`;
 
             try {
                 console.log("[DEBUG] [ETAPA 2] Disparando chamada para a IA...");
