@@ -113,34 +113,11 @@
         <p class="text-sm text-slate-500">Feito com muito amor por Enzo Viola - TXXVIII</p>
     </footer>
 
-    <script type="module">
-        // --- CONFIGURAÇÃO FIREBASE ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyAmurYBR1eXxf6KMOAgMHGGWlfKVClPDq8",
-            authDomain: "assistente-anamnese-ps.firebaseapp.com",
-            projectId: "assistente-anamnese-ps",
-            storageBucket: "assistente-anamnese-ps.appspot.com",
-            messagingSenderId: "514657807215",
-            appId: "1:514657807215:web:70d06c661eeb7da47f969a"
-        };
-
-        // Importações e Inicialização do Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-        let db;
-        try {
-            const app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-        } catch (error) {
-            console.error("Erro na inicialização do Firebase. Verifique sua configuração.", error);
-        }
-        
-        const historyCollection = db ? collection(db, "consultations") : null;
-
+    <script>
         // --- LÓGICA DA APLICAÇÃO ---
         let triageData = {};
         let historyCache = [];
+        const LOCAL_STORAGE_KEY = 'consultations_history';
 
         // Seletores DOM
         const triageForm = document.getElementById('triage-form');
@@ -167,43 +144,41 @@
 
         // --- FUNÇÕES DE HISTÓRICO ---
         async function saveToHistory(data) {
-            if (!historyCollection) return;
             try {
-                await addDoc(historyCollection, {
+                const newEntry = {
                     ...data,
-                    createdAt: serverTimestamp()
-                });
+                    createdAt: Date.now()
+                };
+                historyCache.unshift(newEntry);
+                if (historyCache.length > 5) {
+                    historyCache = historyCache.slice(0, 5);
+                }
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(historyCache));
                 loadHistory();
             } catch (error) {
-                console.error("Erro ao salvar no histórico:", error);
+                console.error("Erro ao salvar no histórico local:", error);
             }
         }
 
         async function loadHistory() {
-            if (!historyCollection) {
-                historyList.innerHTML = '<p class="text-orange-500 text-center py-2">Firebase não configurado. O histórico está desativado.</p>';
-                return;
-            }
             try {
-                const q = query(historyCollection, orderBy("createdAt", "desc"), limit(5));
-                const querySnapshot = await getDocs(q);
+                const storedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
+                historyCache = storedHistory ? JSON.parse(storedHistory) : [];
                 historyList.innerHTML = '';
-                historyCache = [];
-                if (querySnapshot.empty) {
+                if (historyCache.length === 0) {
                     historyList.innerHTML = '<p class="text-slate-500 text-center py-2">Nenhuma consulta recente.</p>';
                     return;
                 }
-                querySnapshot.forEach((doc, index) => {
-                    const data = doc.data();
-                    historyCache.push(data);
+                historyCache.forEach((data, index) => {
                     const button = document.createElement('button');
                     button.dataset.index = index;
-                    button.innerHTML = `<strong class="text-blue-600">${data.queixa}</strong> <span class="text-slate-500">- ${new Date(data.createdAt?.toDate()).toLocaleString('pt-BR')}</span>`;
+                    const dateString = new Date(data.createdAt).toLocaleString('pt-BR');
+                    button.innerHTML = `<strong class="text-blue-600">${data.queixa}</strong> <span class="text-slate-500">- ${dateString}</span>`;
                     button.onclick = () => loadFromHistory(index);
                     historyList.appendChild(button);
                 });
             } catch (error) {
-                console.error("Erro ao carregar histórico:", error);
+                console.error("Erro ao carregar histórico local:", error);
                 historyList.innerHTML = '<p class="text-red-500 text-center py-2">Erro ao carregar histórico.</p>';
             }
         }
@@ -255,9 +230,9 @@
                 console.log("[DEBUG] [ETAPA 1] Respostas do Gemini recebidas.");
 
                 triageData.searchTerm = clinicalSearchTerm.trim();
-                console.log("[DEBUG] [ETAPA 1] Salvando no Firebase...");
+                console.log("[DEBUG] [ETAPA 1] Salvando no Cache do Navegador...");
                 await saveToHistory(triageData);
-                console.log("[DEBUG] [ETAPA 1] Firebase salvo/processado com sucesso.");
+                console.log("[DEBUG] [ETAPA 1] Cache salvo/processado com sucesso.");
 
                 if (checklistResultText) {
                     const anamneseMatch = checklistResultText.match(/### Anamnese Direcionada([\s\S]*?)(?=### Sinais de Alarme a Descartar|$)/);
