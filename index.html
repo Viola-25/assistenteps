@@ -313,6 +313,25 @@
             }
         });
 
+        // Função de Debug para listar os modelos disponíveis
+        async function debugAvailableModels(apiKey) {
+            console.warn("=== INICIANDO DEBUG DE MODELOS DA API ===");
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+                if (!response.ok) throw new Error("Falha ao listar modelos");
+                const data = await response.json();
+                console.log("Modelos que você PODE usar no seu código:");
+                data.models.forEach(m => {
+                    if (m.supportedGenerationMethods.includes('generateContent')) {
+                        console.log(`-> ${m.name.replace('models/', '')}`);
+                    }
+                });
+                console.warn("=========================================");
+            } catch (err) {
+                console.error("Erro no debug de modelos:", err);
+            }
+        }
+
         // Função de chamada da API
         async function callGeminiAPI(prompt) {
             const apiKey = "AIzaSyDusnZ_1tNyv7FhGeWT_WUTu3gNLRAfLoc";
@@ -331,6 +350,9 @@
 
             if (!response.ok) {
                 const errorBody = await response.text();
+                if (response.status === 404) {
+                    await debugAvailableModels(apiKey);
+                }
                 throw new Error(`Erro na API: Status ${response.status}. ${errorBody}`);
             }
 
