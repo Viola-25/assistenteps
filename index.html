@@ -83,6 +83,17 @@
         </div>
 
 
+        <!-- GERENCIADOR DE API KEY -->
+        <div id="api-key-manager" class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <h3 class="text-sm font-semibold text-amber-900 mb-2">🔑 Chave de API Gemini</h3>
+            <div class="flex gap-2">
+                <input type="password" id="api-key-input" class="flex-1 p-2 text-sm border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500" placeholder="Cole sua chave de API do Google Gemini aqui...">
+                <button id="save-api-key-btn" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition">Salvar</button>
+                <button id="clear-api-key-btn" class="px-3 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition" title="Apagar chave salva">✕</button>
+            </div>
+            <p id="api-key-status" class="text-xs text-amber-700 mt-2"></p>
+        </div>
+
         <!-- BOTÃO DE AÇÃO PÓS-GERAÇÃO -->
         <div id="actions-container" class="mt-6 hidden">
             <button id="search-protocols-button" class="w-full flex items-center justify-center bg-gray-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-300 transition-all">
@@ -118,6 +129,7 @@
         let triageData = {};
         let historyCache = [];
         const LOCAL_STORAGE_KEY = 'consultations_history';
+        const API_KEY_STORAGE_KEY = 'gemini_api_key';
 
         // Seletores DOM
         const triageForm = document.getElementById('triage-form');
@@ -137,12 +149,16 @@
         const searchProtocolsButton = document.getElementById('search-protocols-button');
         const searchTermSpan = document.getElementById('search-term');
         const historyList = document.getElementById('history-list');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+        const clearApiKeyBtn = document.getElementById('clear-api-key-btn');
+        const apiKeyStatus = document.getElementById('api-key-status');
 
         // Ícones SVG
         const normalIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-question-circle-fill flex-shrink-0 text-blue-500" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z"/></svg>`;
         const alarmIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-exclamation-triangle-fill flex-shrink-0 text-red-500" viewBox="0 0 16 16"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>`;
 
-        // --- FUNÇÕES DE HISTÓRICO ---
+        // --- FUNÇÕES DE HISTÓRIA ---
         async function saveToHistory(data) {
             try {
                 const newEntry = {
@@ -191,6 +207,49 @@
             document.getElementById('comorbidades').value = data.comorbidades === "Nega comorbidades e alergias" ? "" : data.comorbidades;
             triageForm.scrollIntoView({ behavior: 'smooth' });
         }
+
+        // --- FUNÇÕES DE GERENCIAMENTO DE API KEY ---
+        function loadApiKey() {
+            const savedKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                updateApiKeyStatus(true);
+            } else {
+                updateApiKeyStatus(false);
+            }
+        }
+
+        function updateApiKeyStatus(hasSavedKey) {
+            if (hasSavedKey) {
+                apiKeyStatus.textContent = '✓ Chave salva no cache do navegador';
+                apiKeyStatus.classList.add('text-green-700');
+                apiKeyStatus.classList.remove('text-red-700');
+            } else {
+                apiKeyStatus.textContent = '⚠ Nenhuma chave salva. Por favor, insira sua chave de API.';
+                apiKeyStatus.classList.add('text-red-700');
+                apiKeyStatus.classList.remove('text-green-700');
+            }
+        }
+
+        saveApiKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (!key) {
+                alert('Por favor, insira uma chave de API válida.');
+                return;
+            }
+            localStorage.setItem(API_KEY_STORAGE_KEY, key);
+            updateApiKeyStatus(true);
+            alert('✓ Chave de API salva com sucesso no cache!');
+        });
+
+        clearApiKeyBtn.addEventListener('click', () => {
+            if (confirm('Tem certeza que deseja apagar a chave de API salva?')) {
+                localStorage.removeItem(API_KEY_STORAGE_KEY);
+                apiKeyInput.value = '';
+                updateApiKeyStatus(false);
+                alert('✓ Chave de API removida.');
+            }
+        });
 
 
         // ETAPA 1: Gerar Guia de Anamnese
@@ -335,7 +394,12 @@
         // Função de chamada da API
         async function callGeminiAPI(prompt) {
             console.log("[DEBUG] [API] Preparando requisição...");
-            const apiKey = "AIzaSyBZVdbKM_sIC99E9tzZfW997HiEZhjAFvc";
+            const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+            
+            if (!apiKey) {
+                throw new Error('Chave de API não configurada. Por favor, insira sua chave de API do Google Gemini no campo acima.');
+            }
+            
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             
             const payload = {
@@ -381,8 +445,11 @@
             containerElement.classList.remove('hidden');
         }
 
-        // Carrega o histórico ao iniciar a página
-        window.onload = loadHistory;
+        // Carrega o histórico e a API key ao iniciar a página
+        window.onload = () => {
+            loadHistory();
+            loadApiKey();
+        };
     </script>
 </body>
 </html>
