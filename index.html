@@ -221,6 +221,7 @@
         // ETAPA 1: Gerar Guia de Anamnese
         triageForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            console.log("[DEBUG] [ETAPA 1] Formulário submetido.");
             
             triageData = {
                 queixa: document.getElementById('queixa_principal').value.trim(),
@@ -230,8 +231,12 @@
                 searchTerm: ''
             };
 
-            if (!triageData.queixa) { return; }
+            if (!triageData.queixa) {
+                console.log("[DEBUG] [ETAPA 1] Queixa vazia, abortando.");
+                return; 
+            }
 
+            console.log("[DEBUG] [ETAPA 1] Iniciando UI de carregamento. Dados:", triageData);
             setLoadingState(true, 1);
             checklistContainer.classList.add('hidden');
             actionsContainer.classList.add('hidden');
@@ -242,13 +247,17 @@
             const searchTermPrompt = `A partir da seguinte queixa principal de um paciente, extraia apenas o termo clínico principal para uma pesquisa de protocolos. Por exemplo, para "dor no peito há 2 horas", o termo é "dor torácica". Para "cabeça doendo muito forte", o termo é "cefaleia". Retorne APENAS o termo clínico, sem nenhuma outra palavra. Queixa: "${triageData.queixa}"`;
 
             try {
+                console.log("[DEBUG] [ETAPA 1] Disparando chamadas para o Gemini...");
                 const [checklistResultText, clinicalSearchTerm] = await Promise.all([
                     callGeminiAPI(checklistPrompt),
                     callGeminiAPI(searchTermPrompt)
                 ]);
+                console.log("[DEBUG] [ETAPA 1] Respostas do Gemini recebidas.");
 
                 triageData.searchTerm = clinicalSearchTerm.trim();
+                console.log("[DEBUG] [ETAPA 1] Salvando no Firebase...");
                 await saveToHistory(triageData);
+                console.log("[DEBUG] [ETAPA 1] Firebase salvo/processado com sucesso.");
 
                 if (checklistResultText) {
                     const anamneseMatch = checklistResultText.match(/### Anamnese Direcionada([\s\S]*?)(?=### Sinais de Alarme a Descartar|$)/);
@@ -276,8 +285,10 @@
                 etapa2.classList.remove('hidden');
 
             } catch (error) {
+                console.error("[DEBUG] [ETAPA 1] Erro capturado no catch:", error);
                 handleError(error, checklistOutput, checklistContainer);
             } finally {
+                console.log("[DEBUG] [ETAPA 1] Finalizando loading da Etapa 1.");
                 setLoadingState(false, 1);
             }
         });
@@ -293,22 +304,31 @@
         // ETAPA 2: Gerar HD e Conduta
         anamneseForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            console.log("[DEBUG] [ETAPA 2] Formulário submetido.");
             const anamneseCompleta = document.getElementById('anamnese_completa').value.trim();
 
-            if (!anamneseCompleta) { return; }
+            if (!anamneseCompleta) {
+                console.log("[DEBUG] [ETAPA 2] Anamnese vazia, abortando.");
+                return; 
+            }
 
+            console.log("[DEBUG] [ETAPA 2] Iniciando UI de carregamento.");
             setLoadingState(true, 2);
             hdCdContainer.classList.add('hidden');
 
             const prompt = `Você é um assistente médico sênior. Analise os dados completos do paciente para sugerir Hipóteses Diagnósticas e uma Conduta detalhada e categorizada. DADOS DA TRIAGEM: Queixa: ${triageData.queixa}; Idade/Gênero: ${triageData.idadeGenero}; Sinais Vitais: ${triageData.sinais}; Comorbidades: ${triageData.comorbidades}. ANAMNESE E EXAME FÍSICO: ${anamneseCompleta}. INSTRUÇÕES DE SAÍDA: Retorne a resposta ESTRITAMENTE no seguinte formato:\n\n#HD:\n- **[HIPÓTESE EM CAIXA ALTA?]:** [Explicação concisa].\n\n#CD (Exames Laboratoriais):\n- [Exame 1]\n\n#CD (Exames de Imagem):\n- [Exame 1]\n\n#CD (Medicações Iniciais):\n- [Medicação 1]\n\n#CD (Pareceres e Encaminhamentos):\n- [Parecer 1]`;
 
             try {
+                console.log("[DEBUG] [ETAPA 2] Disparando chamada para o Gemini...");
                 const resultText = await callGeminiAPI(prompt);
+                console.log("[DEBUG] [ETAPA 2] Resposta recebida.");
                 hdCdOutput.textContent = resultText;
                 hdCdContainer.classList.remove('hidden');
             } catch (error) {
+                console.error("[DEBUG] [ETAPA 2] Erro capturado no catch:", error);
                 handleError(error, hdCdOutput, hdCdContainer);
             } finally {
+                console.log("[DEBUG] [ETAPA 2] Finalizando loading da Etapa 2.");
                 setLoadingState(false, 2);
             }
         });
@@ -334,6 +354,7 @@
 
         // Função de chamada da API
         async function callGeminiAPI(prompt) {
+            console.log("[DEBUG] [API] Preparando requisição...");
             const apiKey = "AIzaSyDusnZ_1tNyv7FhGeWT_WUTu3gNLRAfLoc";
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
             
@@ -342,11 +363,13 @@
                 generationConfig: { temperature: 0.4, topP: 0.95 }
             };
 
+            console.log("[DEBUG] [API] Executando fetch...");
             const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            console.log(`[DEBUG] [API] Fetch retornado. Status: ${response.status}`);
 
             if (!response.ok) {
                 const errorBody = await response.text();
