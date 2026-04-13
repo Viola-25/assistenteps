@@ -391,8 +391,8 @@
             }
         }
 
-        // Função de chamada da API
-        async function callGeminiAPI(prompt) {
+        // Função de chamada da API com retry automático
+        async function callGeminiAPI(prompt, retries = 3, delay = 2000) {
             console.log("[DEBUG] [API] Preparando requisição...");
             const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
             
@@ -407,25 +407,46 @@
                 generationConfig: { temperature: 0.4, topP: 0.95 }
             };
 
-            console.log("[DEBUG] [API] Executando fetch...");
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            console.log(`[DEBUG] [API] Fetch retornado. Status: ${response.status}`);
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    console.log(`[DEBUG] [API] Tentativa ${attempt}/${retries}...`);
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    console.log(`[DEBUG] [API] Fetch retornado. Status: ${response.status}`);
 
-            if (!response.ok) {
-                const errorBody = await response.text();
-                if (response.status === 404) {
-                    await debugAvailableModels(apiKey);
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (!result.candidates || result.candidates.length === 0) return "";
+                        return result.candidates[0].content.parts[0].text;
+                    }
+
+                    // Se é erro 503 (indisponível) ou 429 (muitas requisições), tenta novamente
+                    if ((response.status === 503 || response.status === 429) && attempt < retries) {
+                        const waitTime = delay * attempt; // backoff exponencial
+                        console.warn(`[DEBUG] [API] Serviço indisponível (${response.status}). Tentando novamente em ${waitTime}ms...`);
+                        await new Promise(resolve => setTimeout(resolve, waitTime));
+                        continue;
+                    }
+
+                    // Outro erro - lança exceção
+                    const errorBody = await response.text();
+                    if (response.status === 404) {
+                        await debugAvailableModels(apiKey);
+                    }
+                    throw new Error(`Erro na API: Status ${response.status}. ${errorBody}`);
+                } catch (error) {
+                    if (attempt === retries) {
+                        throw error;
+                    }
+                    console.error(`[DEBUG] [API] Erro na tentativa ${attempt}:`, error.message);
+                    const waitTime = delay * attempt;
+                    console.log(`[DEBUG] [API] Aguardando ${waitTime}ms antes de tentar novamente...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
                 }
-                throw new Error(`Erro na API: Status ${response.status}. ${errorBody}`);
             }
-
-            const result = await response.json();
-            if (!result.candidates || result.candidates.length === 0) return "";
-            return result.candidates[0].content.parts[0].text;
         }
 
         function setLoadingState(isLoading, step) {
