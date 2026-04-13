@@ -253,6 +253,7 @@
                     }
                     checklistOutput.innerHTML = checklistHtml;
                     checklistContainer.classList.remove('hidden');
+                    checklistContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
                 
                 searchTermSpan.textContent = triageData.searchTerm;
@@ -297,8 +298,12 @@
                 console.log("[DEBUG] [ETAPA 2] Disparando chamada para o Gemini...");
                 const resultText = await callGeminiAPI(prompt);
                 console.log("[DEBUG] [ETAPA 2] Resposta recebida.");
-                hdCdOutput.textContent = resultText;
+                
+                // Converter negrito e quebras de linha do Markdown para HTML
+                const formattedText = resultText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+                hdCdOutput.innerHTML = formattedText;
                 hdCdContainer.classList.remove('hidden');
+                hdCdContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } catch (error) {
                 console.error("[DEBUG] [ETAPA 2] Erro capturado no catch:", error);
                 handleError(error, hdCdOutput, hdCdContainer);
