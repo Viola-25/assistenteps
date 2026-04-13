@@ -376,6 +376,27 @@
             }
         });
 
+        // Função para debugar modelos disponíveis no Groq
+        async function debugAvailableModelsGroq(apiKey) {
+            console.warn("=== LISTANDO MODELOS DISPONÍVEIS DO GROQ ===");
+            try {
+                const response = await fetch('https://api.groq.com/openai/v1/models', {
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`
+                    }
+                });
+                if (!response.ok) throw new Error("Falha ao listar modelos");
+                const data = await response.json();
+                console.log("Modelos disponíveis no Groq:");
+                data.data.forEach(m => {
+                    console.log(`-> ${m.id}`);
+                });
+                console.warn("==============================================");
+            } catch (err) {
+                console.error("Erro ao listar modelos:", err);
+            }
+        }
+
         // Função de chamada da Groq API
         async function callGroqAPI(prompt, retries = 3, delay = 2000) {
             console.log("[DEBUG] [API] Preparando requisição Groq...");
@@ -423,6 +444,12 @@
 
                     // Outro erro - lança exceção
                     const errorBody = await response.text();
+                    
+                    // Se é modelo descontinuado, faz debug dos modelos disponíveis
+                    if (errorBody.includes('model_decommissioned')) {
+                        await debugAvailableModelsGroq(apiKey);
+                    }
+                    
                     throw new Error(`Erro na API Groq: Status ${response.status}. ${errorBody}`);
                 } catch (error) {
                     if (attempt === retries) {
